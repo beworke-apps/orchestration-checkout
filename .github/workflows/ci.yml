@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HEROUI_AUTH_TOKEN: ${{ secrets.HEROUI_AUTH_TOKEN }}
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Verify HeroUI CI token
+        run: |
+          if [ -z "$HEROUI_AUTH_TOKEN" ]; then
+            echo "::error::HEROUI_AUTH_TOKEN não configurado. Adicione o token CI/CD em Settings → Secrets and variables → Actions (nome: HEROUI_AUTH_TOKEN)."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          HEROUI_AUTH_TOKEN: ${{ secrets.HEROUI_AUTH_TOKEN }}
+
+      - name: Verify HeroUI Pro installation
+        run: |
+          if ! node --input-type=module -e "import('@heroui-pro/react')" 2>/dev/null; then
+            echo "::error::@heroui-pro/react não foi instalado corretamente. Confira se o secret usa o token CI/CD (não o token pessoal) do dashboard HeroUI."
+            exit 1
+          fi
+
+      - name: Prettier check
+        run: pnpm format:check
+
+      - name: ESLint strict
+        run: pnpm lint:strict
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build

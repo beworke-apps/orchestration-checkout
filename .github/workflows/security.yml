@@ -1,0 +1,47 @@
+name: Security
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'
+
+env:
+  HEROUI_AUTH_TOKEN: ${{ secrets.HEROUI_AUTH_TOKEN }}
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Verify HeroUI CI token
+        run: |
+          if [ -z "$HEROUI_AUTH_TOKEN" ]; then
+            echo "::error::HEROUI_AUTH_TOKEN não configurado. Adicione o token CI/CD em Settings → Secrets and variables → Actions (nome: HEROUI_AUTH_TOKEN)."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          HEROUI_AUTH_TOKEN: ${{ secrets.HEROUI_AUTH_TOKEN }}
+
+      - name: pnpm audit
+        run: pnpm audit --audit-level=high --prod
+
+  dependency-review:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4

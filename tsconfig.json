@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "allowJs": true,
+    "types": ["vitest/globals", "@testing-library/jest-dom"],
+    "baseUrl": ".",
+    "esModuleInterop": true,
+    "exactOptionalPropertyTypes": true,
+    "forceConsistentCasingInFileNames": true,
+    "incremental": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "module": "ESNext",
+    "moduleDetection": "force",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ESNext",
+    "verbatimModuleSyntax": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/widgets/*": ["./src/components/widgets/*"],
+      "@/templates/*": ["./src/components/templates/*"],
+      "@/pages/*": ["./src/components/pages/*"],
+      "@/hooks/*": ["./src/hooks/*"],
+      "@/services/*": ["./src/services/*"],
+      "@/server/*": ["./src/server/*"],
+      "@/lib/*": ["src/lib/*"],
+      "@/utils/*": ["./src/utils/*"],
+      "@/types/*": ["./src/types/*"],
+      "@/config/*": ["./src/config/*"],
+      "@/store/*": ["./src/store/*"]
+    }
+  },
+  "exclude": ["node_modules"],
+  "include": [
+    "src",
+    "next.config.ts",
+    "next-env.d.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "e2e",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "src/hooks/query/core/.ts"
+  ]
+}
