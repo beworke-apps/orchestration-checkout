@@ -4,7 +4,7 @@ import type { BemonyCardEmbedHandle } from '@bemony/card-embed-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormProvider, useForm } from 'react-hook-form';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { Button, Form, Surface } from '@heroui/react';
 
@@ -16,7 +16,7 @@ import { createPaymentPayload } from '@/lib/payment-payload';
 
 type CheckoutSession = { id: string; sessionClientSecret: string };
 
-export default function Checkout() {
+export default function Checkout({ session }: { session: CheckoutSession | undefined }) {
   const handlePay = async (data: CheckoutFormValues) => {
     const checkout = normalizeCheckoutForm(data);
 
@@ -34,7 +34,6 @@ export default function Checkout() {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          'idempotency-key': crypto.randomUUID(),
         },
         body: JSON.stringify(createPaymentPayload(session.id, tokenized.token, checkout)),
       });
@@ -57,8 +56,6 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [canPay, setCanPay] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState<string | undefined>();
-  const [session, setSession] = useState<CheckoutSession>();
-  const [sessionError, setSessionError] = useState(false);
   const form = useForm<CheckoutFormValues>({
     defaultValues: {
       firstName: '',
@@ -90,16 +87,6 @@ export default function Checkout() {
     resolver: zodResolver(checkoutFormSchema),
   });
 
-  useEffect(() => {
-    void fetch('/api/session', { method: 'POST' })
-      .then(async (response) => {
-        if (!response.ok) throw new Error('Unable to load checkout session.');
-        return (await response.json()) as CheckoutSession;
-      })
-      .then(setSession)
-      .catch(() => setSessionError(true));
-  }, []);
-
   return (
     <div className="grid h-full min-h-screen w-full grid-cols-12">
       <div className="col-span-7" />
@@ -126,11 +113,7 @@ export default function Checkout() {
                   sessionClientSecret={session.sessionClientSecret}
                 />
               ) : (
-                <p role={sessionError ? 'alert' : 'status'}>
-                  {sessionError
-                    ? 'Unable to initialize secure card fields.'
-                    : 'Loading secure card fields…'}
-                </p>
+                <p role="alert">Unable to initialize secure card fields.</p>
               )}
               {paymentMessage && <p role="status">{paymentMessage}</p>}
               <Button fullWidth isDisabled={!session} isPending={loading} type="submit">
