@@ -1,40 +1,129 @@
 'use client';
 
-import { TextField } from '@/components/composites';
-import { Controller, useFormContext } from 'react-hook-form';
+import { Controller, useFormContext, useWatch } from 'react-hook-form';
 
-export function ShippingAddress() {
-  const { control } = useFormContext();
+import { Checkbox } from '@heroui/react';
+
+import { TextField } from '@/components/composites';
+
+import { CountryAutocomplete } from '../country-autocomplete';
+import type { CheckoutFormValues } from '../types';
+
+type AddressFieldsProps = {
+  prefix: 'billing' | 'shipping';
+  title?: string;
+};
+
+function AddressFields({ prefix, title }: AddressFieldsProps) {
+  const { control } = useFormContext<CheckoutFormValues>();
+  const fieldName = <Field extends keyof CheckoutFormValues['shipping']>(field: Field) =>
+    `${prefix}.${field}` as const;
+
   return (
-    <fieldset className="flex flex-col gap-2">
-      <legend className="mb-3 text-lg font-bold">Address</legend>
+    <div className="flex flex-col gap-3">
+      {title && <h3 className="text-base font-semibold">{title}</h3>}
       <Controller
         control={control}
-        name="street"
-        render={({ field }) => <TextField placeholder="Street" variant="secondary" {...field} />}
+        name={fieldName('country')}
+        render={({ field, fieldState }) => (
+          <CountryAutocomplete
+            errorMessage={fieldState.error?.message}
+            onChange={field.onChange}
+            placeholder="Country"
+            value={field.value}
+          />
+        )}
       />
-      <div className="grid grid-cols-2 gap-2">
+      <Controller
+        control={control}
+        name={fieldName('street')}
+        render={({ field, fieldState }) => (
+          <TextField
+            errorMessage={fieldState.error?.message}
+            placeholder="Street address"
+            variant="secondary"
+            {...field}
+          />
+        )}
+      />
+      <Controller
+        control={control}
+        name={fieldName('apartment')}
+        render={({ field, fieldState }) => (
+          <TextField
+            errorMessage={fieldState.error?.message}
+            placeholder="Apt, suite, or other"
+            variant="secondary"
+            {...field}
+          />
+        )}
+      />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Controller
           control={control}
-          name="city"
-          render={({ field }) => <TextField placeholder="City" variant="secondary" {...field} />}
+          name={fieldName('zip')}
+          render={({ field, fieldState }) => (
+            <TextField
+              errorMessage={fieldState.error?.message}
+              placeholder="Postal code"
+              variant="secondary"
+              {...field}
+            />
+          )}
         />
         <Controller
           control={control}
-          name="state"
-          render={({ field }) => <TextField placeholder="State" variant="secondary" {...field} />}
+          name={fieldName('city')}
+          render={({ field, fieldState }) => (
+            <TextField
+              errorMessage={fieldState.error?.message}
+              placeholder="City"
+              variant="secondary"
+              {...field}
+            />
+          )}
         />
         <Controller
           control={control}
-          name="zip"
-          render={({ field }) => <TextField placeholder="Zip" variant="secondary" {...field} />}
-        />
-        <Controller
-          control={control}
-          name="country"
-          render={({ field }) => <TextField placeholder="Country" variant="secondary" {...field} />}
+          name={fieldName('state')}
+          render={({ field, fieldState }) => (
+            <TextField
+              errorMessage={fieldState.error?.message}
+              placeholder="State / region"
+              variant="secondary"
+              {...field}
+            />
+          )}
         />
       </div>
+    </div>
+  );
+}
+
+export function ShippingAddress() {
+  const { control, setValue } = useFormContext<CheckoutFormValues>();
+  const billingSameAsShipping = useWatch({ control, name: 'billingSameAsShipping' });
+
+  return (
+    <fieldset className="flex flex-col gap-4">
+      <legend className="mb-3 text-lg font-medium">Shipping Information</legend>
+      <AddressFields prefix="shipping" />
+      <Checkbox
+        className="w-full"
+        isSelected={billingSameAsShipping}
+        onChange={(isSelected) =>
+          setValue('billingSameAsShipping', isSelected, { shouldDirty: true })
+        }
+        variant="secondary"
+      >
+        <Checkbox.Content className="flex-row items-center gap-3">
+          <Checkbox.Control className="border-border data-[selected=true]:border-success data-[selected=true]:bg-success size-5 shrink-0 rounded-md border before:rounded-[inherit]">
+            <Checkbox.Indicator />
+          </Checkbox.Control>
+          Billing address is the same as shipping
+        </Checkbox.Content>
+      </Checkbox>
+      {!billingSameAsShipping && <AddressFields prefix="billing" title="Billing Information" />}
     </fieldset>
   );
 }

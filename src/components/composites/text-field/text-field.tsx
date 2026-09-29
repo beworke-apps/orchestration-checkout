@@ -1,4 +1,4 @@
-import { ErrorMessage, InputGroup, Label, TextField as TextFieldBase } from '@heroui/react';
+import { FieldError, InputGroup, Label, TextField as TextFieldBase } from '@heroui/react';
 
 import type { TextFieldProps } from './text-field.type';
 
@@ -18,7 +18,7 @@ export function TextField({
         <InputGroup.Input placeholder={placeholder ?? ''} />
         {endContent && <InputGroup.Suffix>{endContent}</InputGroup.Suffix>}
       </InputGroup>
-      {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
+      {errorMessage && <FieldError>{errorMessage}</FieldError>}
     </TextFieldBase>
   );
 }
