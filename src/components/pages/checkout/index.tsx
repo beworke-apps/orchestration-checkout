@@ -4,7 +4,7 @@ import type { BemonyCardEmbedHandle } from '@bemony/card-embed-react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FormProvider, useForm } from 'react-hook-form';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Button, Form, Surface } from '@heroui/react';
 
@@ -14,19 +14,13 @@ import type { CheckoutFormValues } from '@/components/widgets/checkout-form/type
 import { checkoutFormSchema, normalizeCheckoutForm } from '@/lib/checkout-form';
 import { createPaymentPayload } from '@/lib/payment-payload';
 
-export default function Checkout({
-  checkoutSessionId,
-  sessionClientSecret,
-  sessionError,
-}: {
-  checkoutSessionId: string | undefined;
-  sessionClientSecret: string | undefined;
-  sessionError: boolean;
-}) {
+type CheckoutSession = { id: string; sessionClientSecret: string };
+
+export default function Checkout() {
   const handlePay = async (data: CheckoutFormValues) => {
     const checkout = normalizeCheckoutForm(data);
 
-    if (!canPay || !ref.current || !checkoutSessionId) {
+    if (!canPay || !ref.current || !session) {
       setPaymentMessage('Complete the secure card details before continuing.');
       return;
     }
@@ -42,7 +36,7 @@ export default function Checkout({
           'content-type': 'application/json',
           'idempotency-key': crypto.randomUUID(),
         },
-        body: JSON.stringify(createPaymentPayload(checkoutSessionId, tokenized.token, checkout)),
+        body: JSON.stringify(createPaymentPayload(session.id, tokenized.token, checkout)),
       });
       const payment: unknown = await response.json().catch(() => undefined);
 
@@ -63,6 +57,8 @@ export default function Checkout({
   const [loading, setLoading] = useState(false);
   const [canPay, setCanPay] = useState(false);
   const [paymentMessage, setPaymentMessage] = useState<string | undefined>();
+  const [session, setSession] = useState<CheckoutSession>();
+  const [sessionError, setSessionError] = useState(false);
   const form = useForm<CheckoutFormValues>({
     defaultValues: {
       firstName: '',
@@ -94,6 +90,16 @@ export default function Checkout({
     resolver: zodResolver(checkoutFormSchema),
   });
 
+  useEffect(() => {
+    void fetch('/api/session', { method: 'POST' })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Unable to load checkout session.');
+        return (await response.json()) as CheckoutSession;
+      })
+      .then(setSession)
+      .catch(() => setSessionError(true));
+  }, []);
+
   return (
     <div className="grid h-full min-h-screen w-full grid-cols-12">
       <div className="col-span-7" />
@@ -112,12 +118,12 @@ export default function Checkout({
               <Customer />
               <ShippingAddress />
 
-              {sessionClientSecret ? (
+              {session ? (
                 <BemonyCardEmbed
                   layout="combined"
                   onStateChange={(state) => setCanPay(state.complete && state.valid)}
                   ref={ref}
-                  sessionClientSecret={sessionClientSecret}
+                  sessionClientSecret={session.sessionClientSecret}
                 />
               ) : (
                 <p role={sessionError ? 'alert' : 'status'}>
@@ -127,7 +133,7 @@ export default function Checkout({
                 </p>
               )}
               {paymentMessage && <p role="status">{paymentMessage}</p>}
-              <Button fullWidth isDisabled={!sessionClientSecret} isPending={loading} type="submit">
+              <Button fullWidth isDisabled={!session} isPending={loading} type="submit">
                 Pay Now
               </Button>
             </Form>
