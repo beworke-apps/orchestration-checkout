@@ -17,10 +17,11 @@ import { createPaymentPayload } from '@/lib/payment-payload';
 type CheckoutSession = { id: string; sessionClientSecret: string };
 
 export default function Checkout({ session }: { session: CheckoutSession | undefined }) {
+  const localSandbox = process.env.NEXT_PUBLIC_LOCAL_SANDBOX === '1';
   const handlePay = async (data: CheckoutFormValues) => {
     const checkout = normalizeCheckoutForm(data);
 
-    if (!canPay || !ref.current || !session) {
+    if (!canPay || (!localSandbox && !ref.current) || !session) {
       setPaymentMessage('Complete the secure card details before continuing.');
       return;
     }
@@ -29,7 +30,9 @@ export default function Checkout({ session }: { session: CheckoutSession | undef
     setPaymentMessage(undefined);
 
     try {
-      const tokenized = await ref.current.tokenize();
+      const tokenized = localSandbox
+        ? await tokenizeLocally(session.sessionClientSecret)
+        : await ref.current!.tokenize();
       const response = await fetch('/api/pay', {
         method: 'POST',
         headers: {
@@ -54,7 +57,7 @@ export default function Checkout({ session }: { session: CheckoutSession | undef
 
   const ref = useRef<BemonyCardEmbedHandle>(null);
   const [loading, setLoading] = useState(false);
-  const [canPay, setCanPay] = useState(false);
+  const [canPay, setCanPay] = useState(localSandbox && Boolean(session));
   const [paymentMessage, setPaymentMessage] = useState<string | undefined>();
   const form = useForm<CheckoutFormValues>({
     defaultValues: {
@@ -105,7 +108,14 @@ export default function Checkout({ session }: { session: CheckoutSession | undef
               <Customer />
               <ShippingAddress />
 
-              {session ? (
+              {session && localSandbox ? (
+                <Surface className="rounded-2xl border border-success/30 bg-success/10 p-4">
+                  <p className="font-medium">Local sandbox card</p>
+                  <p className="text-sm text-muted">
+                    No card data leaves this machine. This payment will be approved automatically.
+                  </p>
+                </Surface>
+              ) : session ? (
                 <BemonyCardEmbed
                   layout="combined"
                   onStateChange={(state) => setCanPay(state.complete && state.valid)}
@@ -125,6 +135,17 @@ export default function Checkout({ session }: { session: CheckoutSession | undef
       </div>
     </div>
   );
+}
+
+async function tokenizeLocally(sessionClientSecret: string): Promise<{ token: string }> {
+  const response = await fetch('/api/local-sandbox-token', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ sessionClientSecret }),
+  });
+  const result = (await response.json()) as { token?: string };
+  if (!response.ok || !result.token) throw new Error('Local tokenization failed.');
+  return { token: result.token };
 }
 
 function isPaymentResponse(value: unknown): value is { paymentId: string; status: string } {
