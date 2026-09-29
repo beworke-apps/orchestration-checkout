@@ -32,6 +32,7 @@
     "./src/nav-items": "./src/nav-items.ts"
   },
   "dependencies": {
+    "@bemony/card-embed-react": "^0.1.0",
     "@gravity-ui/icons": "2.18.0",
     "@heroui-pro/react": "latest",
     "@heroui/react": "3.0.5",

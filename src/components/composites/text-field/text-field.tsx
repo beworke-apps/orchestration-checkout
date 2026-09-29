@@ -12,7 +12,7 @@ export function TextField({
 }: TextFieldProps) {
   return (
     <TextFieldBase {...props} isInvalid={!!errorMessage}>
-      <Label>{label}</Label>
+      {label && <Label>{label}</Label>}
       <InputGroup>
         {startContent && <InputGroup.Prefix>{startContent}</InputGroup.Prefix>}
         <InputGroup.Input placeholder={placeholder ?? ''} />
